@@ -1,3 +1,7 @@
+## 0.5.0
+
+* Add support for Flutter 3.10 and Dart 3.0
+
 ## 0.4.1
 
 Community Contributions. Thank you!
