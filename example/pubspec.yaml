@@ -1,6 +1,6 @@
 name: image_crop_example
 description: Demonstrates how to use the image_crop plugin.
-repository: https://github.com/holybricks/country-list-pick.git
+repository: https://github.com/brickit-app/country-list-pick.git
 
 version: 1.1.0+1
 
