@@ -1,11 +1,11 @@
 name: image_crop
 description: A flutter plugin to crop image on iOS and Android. It processes image files off main thread natively. The plugin provides a Crop widget to display image cropping to a user.
-version: 0.5.2
+version: 0.5.3
 repository: https://github.com/brickit-app/country-list-pick.git
 
 environment:
-  sdk: ">=3.3.0 <4.0.0"
-  flutter: ">=3.19.0"
+  sdk: ">=3.7.0 <4.0.0"
+  flutter: ">=3.29.0"
 
 dependencies:
   flutter:
