@@ -4,29 +4,30 @@ version '1.0-SNAPSHOT'
 buildscript {
     repositories {
         google()
-        jcenter()
+        mavenCentral()
+        gradlePluginPortal()
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.4.1'
+        classpath 'com.android.tools.build:gradle:8.2.1'
     }
 }
 
-rootProject.allprojects {
+allprojects {
     repositories {
         google()
-        jcenter()
+        mavenCentral()
+        gradlePluginPortal()
     }
 }
 
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 34
-    namespace = "com.lykhonis.imagecrop"
-
+    compileSdkVersion 35
+    namespace 'com.lykhonis.imagecrop'
     defaultConfig {
-        minSdkVersion 26
+        minSdkVersion 28
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     lintOptions {
