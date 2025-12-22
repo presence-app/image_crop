@@ -65,6 +65,11 @@ public final class ImageCropPlugin implements FlutterPlugin , ActivityAware, Met
     public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
         channel.setMethodCallHandler(null);
         channel = null;
+
+        if (executor != null) {
+            executor.shutdown();
+            executor = null;
+        }
     }
 
     @Override
@@ -101,27 +106,37 @@ public final class ImageCropPlugin implements FlutterPlugin , ActivityAware, Met
     @SuppressWarnings("ConstantConditions")
     @Override
     public void onMethodCall(MethodCall call, Result result) {
-        if ("cropImage".equals(call.method)) {
-            String path = call.argument("path");
-            double scale = call.argument("scale");
-            double left = call.argument("left");
-            double top = call.argument("top");
-            double right = call.argument("right");
-            double bottom = call.argument("bottom");
-            RectF area = new RectF((float) left, (float) top, (float) right, (float) bottom);
-            cropImage(path, area, (float) scale, result);
-        } else if ("sampleImage".equals(call.method)) {
-            String path = call.argument("path");
-            int maximumWidth = call.argument("maximumWidth");
-            int maximumHeight = call.argument("maximumHeight");
-            sampleImage(path, maximumWidth, maximumHeight, result);
-        } else if ("getImageOptions".equals(call.method)) {
-            String path = call.argument("path");
-            getImageOptions(path, result);
-        } else if ("requestPermissions".equals(call.method)) {
-            requestPermissions(result);
-        } else {
-            result.notImplemented();
+        try {
+            if (activity == null && !"requestPermissions".equals(call.method)) {
+                result.error("UNAVAILABLE", "Activity is not available", null);
+                return;
+            }
+
+            if ("cropImage".equals(call.method)) {
+                String path = call.argument("path");
+                double scale = call.argument("scale");
+                double left = call.argument("left");
+                double top = call.argument("top");
+                double right = call.argument("right");
+                double bottom = call.argument("bottom");
+                RectF area = new RectF((float) left, (float) top, (float) right, (float) bottom);
+                cropImage(path, area, (float) scale, result);
+            } else if ("sampleImage".equals(call.method)) {
+                String path = call.argument("path");
+                int maximumWidth = call.argument("maximumWidth");
+                int maximumHeight = call.argument("maximumHeight");
+                sampleImage(path, maximumWidth, maximumHeight, result);
+            } else if ("getImageOptions".equals(call.method)) {
+                String path = call.argument("path");
+                getImageOptions(path, result);
+            } else if ("requestPermissions".equals(call.method)) {
+                requestPermissions(result);
+            } else {
+                result.notImplemented();
+            }
+        } catch (Exception e) {
+            Log.e("ImageCrop", "Error in onMethodCall: " + call.method, e);
+            result.error("ERROR", "Unexpected error: " + e.getMessage(), e);
         }
     }
 
@@ -133,7 +148,13 @@ public final class ImageCropPlugin implements FlutterPlugin , ActivityAware, Met
     }
 
     private void ui(@NonNull Runnable runnable) {
-        activity.runOnUiThread(runnable);
+        if (activity != null) {
+            try {
+                activity.runOnUiThread(runnable);
+            } catch (Exception e) {
+                Log.e("ImageCrop", "Error posting to UI thread", e);
+            }
+        }
     }
 
     private void cropImage(final String path, final RectF area, final float scale, final Result result) {
@@ -327,7 +348,12 @@ public final class ImageCropPlugin implements FlutterPlugin , ActivityAware, Met
             public void run() {
                 File file = new File(path);
                 if (!file.exists()) {
-                    result.error("INVALID", "Image source cannot be opened", null);
+                    ui(new Runnable() {
+                        @Override
+                        public void run() {
+                            result.error("INVALID", "Image source cannot be opened", null);
+                        }
+                    });
                     return;
                 }
 
@@ -347,6 +373,11 @@ public final class ImageCropPlugin implements FlutterPlugin , ActivityAware, Met
     }
 
     private void requestPermissions(Result result) {
+        if (activity == null) {
+            result.error("UNAVAILABLE", "Activity is not available", null);
+            return;
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (activity.checkSelfPermission(READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED &&
                     activity.checkSelfPermission(WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
@@ -373,7 +404,7 @@ public final class ImageCropPlugin implements FlutterPlugin , ActivityAware, Met
     }
 
     private int getPermissionGrantResult(String permission, String[] permissions, int[] grantResults) {
-        for (int i = 0; i < permission.length(); i++) {
+        for (int i = 0; i < permissions.length; i++) {
             if (permission.equals(permissions[i])) {
                 return grantResults[i];
             }
@@ -382,6 +413,9 @@ public final class ImageCropPlugin implements FlutterPlugin , ActivityAware, Met
     }
 
     private File createTemporaryImageFile() throws IOException {
+        if (activity == null) {
+            throw new IOException("Activity is not available");
+        }
         File directory = activity.getCacheDir();
         String name = "image_crop_" + UUID.randomUUID().toString();
         return File.createTempFile(name, ".jpg", directory);
